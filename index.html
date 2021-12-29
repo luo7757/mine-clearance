@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>document</title>
+	<style type="text/css">
+		*{
+			padding: 0;
+			margin: 0;
+		}
+		#mine{
+			text-align: center;
+			margin-bottom: 10px;
+		}
+
+		.level button{
+			padding: 5px 15px;
+			background-color: #02a4ad;
+			border: none;
+			color: #fff;
+			border-radius: 3px;
+			cursor: pointer;
+			outline: none;
+		}
+
+		.level button.active{
+			background-color: #00adff;
+		}
+
+		.info{
+			margin-top: 10px;
+			text-align: center;
+		}
+		table{
+			border-spacing: 1px;
+			background-color: #929196;
+			margin: 0 auto;
+		}
+		td{
+			padding: 0;
+			width: 20px;
+			height: 20px;
+			background-color: #ccc;
+			border: 2px solid;
+			border-color: #fff #a1a1a1 #a1a1a1 #fff;
+			text-align: center;
+			line-height: 20px;
+		}
+		.mine{
+			background-size: cover;
+			background-image: url(mine.png);
+		}
+		.flag{
+			background-size: cover;
+			background-image: url(flag.png);
+		}
+		td.zero{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+		}
+		td.one{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color: #0332fe;
+		}
+		td.two{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color:#019f02;
+		}
+		td.three{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color:#ff2600;
+		}
+		td.four{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color:#93208f;
+		}
+		td.five{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color:#ff7f29;
+
+		}
+		td.six{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color:#ff3fff;
+		}
+		td.seven{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color: #3fffbf;
+		}
+		td.eigth{
+			border-color: #d9d9d9;
+			background-color: #d9d9d9;
+			color: #22ee0f;
+		}
+	</style>
+</head>
+<body>
+	<div id="mine">
+		<div class="level">
+			<button>初级</button>
+			<button>中级</button>
+			<button>高级</button>
+			<button>重新开始</button>
+		</div>
+		<div class="gameBox">
+		
+		</div>
+		<div class="info">剩余雷数 : <span class="mineNum"></span></div>
+	</div>
+
+	<script type="text/javascript">
+		function Mine(tr, td, mineNum){
+			this.tr = tr;//行数
+			this.td = td;//列数
+			this.mineNum = mineNum; //雷的数量
+			this.squares = [];//存储所有方块的信息， 是一个二维数组， 按行与列的顺序排放，存取都使用行列的形式
+			this.tds = [];//存储所有的单元格的dom 二维数组
+			this.surplusMine = mineNum;//剩余雷的数量
+			this.allRight = false;//右击标的小旗是否全是雷。用来判断用户是否游戏成功
+			this.parent = document.querySelector('.gameBox');
+			this.mineNumDom = document.querySelector('.mineNum');
+		}
+
+		Mine.prototype.init = function(){
+			var rn = this.randomNum();//雷在格子里的位置
+			var n = 0;//用来找到格子对应的索引
+			for (var i = 0; i < this.tr; i++) {
+				this.squares[i] = [];
+				for (var j = 0; j < this.td; j++) {
+					// this.squares[i][j] = ;	
+					// n ++;
+					if (rn.indexOf(++n) != -1) {//如果这个条件成立，说明现在循环到的这个索引在雷的数组里找到了，那就表示这个索引对应的是个雷
+						this.squares[i][j] = {type : 'mine', x : j, y : i}
+					}else {
+						this.squares[i][j] = {type : 'number', x : j, y : i, value : 0};
+					}	
+				}
+			}
+			// this.randomNum();
+			// console.log(this.squares);
+			this.parent.oncontextmenu = function(){
+				return false;
+			}
+			this.updateNum();
+			this.createDom();
+			
+			this.mineNumDom.innerHTML = this.surplusMine;//剩余雷数
+		}
+
+
+		Mine.prototype.randomNum = function(){//生成99个雷 随机 数组形式
+			var square = new Array(this.tr * this.td);
+			for (var i = 0; i < square.length; i++) {
+				square[i] = i;
+			}
+			square.sort(function(){return 0.5 - Math.random()});
+			// console.log(square.y);
+			return square.slice(0, this.mineNum);
+		}
+		
+		Mine.prototype.createDom = function(){//创建 扫雷格子 
+			var table = document.createElement('table');
+			var This = this;
+			for (var i = 0; i < this.tr; i++) {//行
+				var tr = document.createElement('tr');
+				this.tds[i] = [];
+				for (var j = 0; j < this.td; j++) {//列
+					var td = document.createElement('td');
+					
+					td.pos = [i, j];//格子对应得行与列 位置 为了下面通过这个值去数组里面取到对应得数据 格子带有坐标
+					td.onmousedown = function(ev){
+						This.play(ev, this);
+					}
+					// if (this.squares[i][j].type == 'mine') {
+					// 	td.classList = 'mine';
+					// }
+					// if (this.squares[i][j].type == 'number') {
+					// 	td.innerHTML = this.squares[i][j].value;
+					// }
+					// 
+					this.tds[i][j] = td;//这里是吧所有创建的td添加到数组中去
+					tr.appendChild(td);	
+				}
+				table.appendChild(tr);			
+			}
+			this.parent.innerHTML = '';
+			this.parent.appendChild(table);
+		}
+
+		Mine.prototype.getAround = function(square){
+			var x = square.x;
+			var y = square.y;
+			var result = []; //把找到的格子的坐标返回出去（二维数组）
+
+			for (var i = x - 1; i <= x + 1; i++) {//通过坐标去循环九宫格
+				for (var j = y - 1; j <= y + 1; j++) {
+					if (j < 0 || i < 0 || j > this.tr - 1 || i > this.td - 1 || (i == x && j == y) || this.squares[j][i].type == 'mine') {
+						continue;
+					}
+					result.push([j, i]);//要以行与列的形式返回出去，因为到时候需要用它去取数组里的数据
+				}
+			}
+			return result;
+		}
+
+		Mine.prototype.updateNum = function(){//更新所有的数字
+			for (var i = 0; i < this.tr; i++) {
+				for (var j = 0; j < this.td; j++) {
+					if (this.squares[i][j].type == 'number') {//只更新是雷的周围的数字
+						continue;
+					}
+					var num = this.getAround(this.squares[i][j]);//获取到每一个雷周围的数字
+					for (var k = 0; k < num.length; k++) {
+						this.squares[num[k][0]][num[k][1]].value += 1;
+					}
+				}
+			}
+			// console.log(this.squares);
+		}
+
+	Mine.prototype.play = function(e, obj){
+		var This = this; 
+		if (e.which == 1 && obj.className != 'flag') {//左键which值为1
+			var curSquare = this.squares[obj.pos[0]][obj.pos[1]];
+			var cl = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eigth'];
+			// console.log(curSquare);
+			// 点到的type类型为数字 否侧为雷
+			if (curSquare.type == 'number') {
+				obj.innerHTML = curSquare.value;
+				obj.className = cl[curSquare.value];
+
+				if (curSquare.value == 0) {//点到了数字0
+					obj.innerHTML = '';//数字为零的话 不显示
+					
+					function getAllZero(square){
+						var around = This.getAround(square);//找到周围的n个格子 返回数组
+						for (var i = 0; i < around.length; i++) {
+							var x = around[i][0];//行
+							var y = around[i][1];//列
+
+							This.tds[x][y].className = cl[This.squares[x][y].value];
+							if (This.squares[x][y].value == 0) {//如果以某个格子为中心找到的格子值为0，那就需要接着调用函数
+								if (!This.tds[x][y].check) {
+									// 给对应的td添加一个属性，这条属性用于决定这个格子有没有被找过，如果找过吗，值为true就不找了，否侧继续
+									This.tds[x][y].check = true;
+									getAllZero(This.squares[x][y]);
+								}
+							}else {
+								This.tds[x][y].innerHTML = This.squares[x][y].value;
+							}
+						}
+					}
+					getAllZero(curSquare);
+				}
+			}else{
+				this.gameOver(obj);
+			}
+		}
+
+		if (e.which == 3) {//鼠标右键which值为 3
+			if (obj.className && obj.className != 'flag') {
+
+				return;
+			}
+			obj.className = obj.className == 'flag' ? '' : 'flag';//切换class
+			if (this.squares[obj.pos[0]][obj.pos[1]].type == 'mine') {
+				this.allRight = true;
+			}else {
+				this.allRight = false;
+			}
+			if (obj.className == 'flag') {//小旗子数量的增加与减少
+				this.mineNumDom.innerHTML = -- this.surplusMine;
+			}else {
+				this.mineNumDom.innerHTML = ++ this.surplusMine;
+			}
+			if (this.surplusMine == 0) {//剩余雷的数量为0， 表示小旗子标完了 这时判断游戏是否成功
+				if (this.allRight) {
+					alert('通关');
+					this.gameOver();
+				}else {
+					alert('失败');
+					this.gameOver();
+				}
+			}
+		}
+	}
+
+Mine.prototype.gameOver = function(clickTd){//游戏失败判断
+	// 1、显示所有的雷
+	// 2、取消所有格子的点击事件
+	// 3、给点击的雷加上一个红色背景
+	for (var i = 0; i < this.tr; i++) {
+		for (var j = 0; j < this.td; j++) {
+			if (this.squares[i][j].type == 'mine') {
+				this.tds[i][j].className = 'mine';
+			}
+			this.tds[i][j].onmousedown = null;
+		}
+	}
+	if (clickTd) {
+		clickTd.style.backgroundColor = 'red';
+	}
+}
+
+	var btns = document.querySelectorAll('.level button');
+	var mine = null;
+	var ln = 0;
+	var arr = [[9,9,10], [16,16,40], [28,28,90]];
+	for (let i = 0; i < btns.length - 1; i++) {
+		btns[i].onclick = function(){
+			btns[ln].className = '';
+			this.className = 'active';
+			mine = new Mine(...arr[i]);
+			mine.init();
+			ln = i;
+		}
+	}
+	btns[0].onclick();
+	btns[3].onclick = function(){
+		btns[0].onclick();
+	}
+	// var mine = new Mine(30,30,99);
+	// mine.init();
+	// console.log(mine.getAround(mine.squares[0][0]));
+	</script>
+</body>
+</html>
